@@ -1,0 +1,43 @@
+logLevel = "INFO"
+
+defaultEntryPoints = ["https","http", "ws", "wss"]
+
+[entryPoints]
+  [entryPoints.http]
+  address = ":80"
+    [entryPoints.http.redirect]
+    entryPoint = "https"
+
+  [entryPoints.https]
+  address = ":443"
+  [entryPoints.https.tls]
+
+[api]
+
+[docker]
+endpoint = "unix:///var/run/docker.sock"
+watch = true
+exposedByDefault = false
+usebindportip = false
+swarmMode = true
+swarmModeRefreshSeconds = 15
+network = "dmz"
+
+[acme]
+acmeLogging = true
+email = "admin@salte.io"
+storage = "/etc/traefik/acme.json"
+entryPoint = "https"
+onHostRule = false
+caServer = "https://acme-v02.api.letsencrypt.org/directory"
+
+[acme.dnsChallenge]
+  provider = "route53"
+  delayBeforeCheck = 0
+  resolvers = ["1.1.1.1:53", "8.8.8.8:53"]
+
+[[acme.domains]]
+  main = "*.iac-example.com"
+
+[[acme.domains]]
+  main = "*.swarm-apps.com"

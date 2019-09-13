@@ -1,0 +1,72 @@
+variables:
+  TF_VAR_AWS_ACCESS_KEY_ID: "$AWS_ACCESS_KEY_ID"
+  TF_VAR_AWS_SECRET_ACCESS_KEY: "$AWS_SECRET_ACCESS_KEY"
+  TF_VAR_SSH_USERNAME: "$TEMPLATE_USERNAME"
+  TF_VAR_SSH_PRIVATE_KEY: "$SSH_PRIVATE_KEY"
+
+
+stages:
+  - validate
+  - plan
+  - deploy
+
+validate:
+  stage: validate
+  image:
+    name: hashicorp/terraform:0.12.7
+    entrypoint: [""]
+  script:
+    - terraform init -input=false
+    - terraform validate
+  artifacts:
+    paths:
+      - .terraform/
+
+.plan_template: &plan
+  stage: plan
+  image:
+    name: hashicorp/terraform:0.12.7
+    entrypoint: [""]
+  script:
+    - terraform workspace select $WORKSPACE || terraform workspace new $WORKSPACE
+    - terraform plan -out shared-services.plan
+  artifacts:
+    paths:
+      - shared-services.plan
+
+development_plan:
+  <<: *plan
+  variables:
+    WORKSPACE: "dev"
+  only:
+    - development
+
+production_plan:
+  <<: *plan
+  variables:
+    WORKSPACE: "prod"
+  only:
+    - production
+
+.deploy_template: &deploy
+  stage: deploy
+  image:
+    name: hashicorp/terraform:0.12.7
+    entrypoint: [""]
+  script:
+    - terraform workspace select $WORKSPACE || terraform workspace new $WORKSPACE
+    - terraform apply -auto-approve shared-services.plan
+
+development_deploy:
+  <<: *deploy
+  variables:
+    WORKSPACE: "dev"
+  only:
+    - development
+
+production_deploy:
+  <<: *deploy
+  variables:
+    WORKSPACE: "prod"
+  only:
+    - production
